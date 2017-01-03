@@ -55,9 +55,10 @@ def flash_upload(args):
     ])
 
 def do_flash(args):
-    sleep(1)
+    print("Flashing device: %s"%args.port[0])
+    sleep(0.6)
     flash_reset(args)
-    sleep(1)
+    sleep(0.6)
     flash_upload(args)
 
 def usb_monitor():
