@@ -8,3 +8,5 @@ tar jxvf adafruit-avr-1.4.9.tar.bz2
 
 mv adafruit-avr-1.4.9/ /usr/share/arduino/hardware/adafruit-avr
 
+rm adafruit-avr-1.4.9.tar.bz2
+

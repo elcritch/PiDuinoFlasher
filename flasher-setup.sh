@@ -12,3 +12,5 @@ sudo pip install ino
 sudo apt-get install -y arduino-mk
 
 
+sudo pip install -r requirements.txt
+
