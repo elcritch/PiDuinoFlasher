@@ -15,3 +15,5 @@ sudo apt-get install -y arduino-mk
 
 sudo pip install -r requirements.txt
 
+./flasher-install-arduino-ide.sh
+

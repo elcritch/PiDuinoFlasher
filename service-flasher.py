@@ -5,6 +5,7 @@ import serial
 import os.path
 import argparse
 from time import sleep
+import time
 import pyudev
 import subprocess
 
@@ -55,14 +56,26 @@ def flash_upload(args):
         "-U", "flash:w:%s:i"%(args.firmware[0]),
     ])
 
+usb_flash_tick = time.time()
+
+def tick():
+    usb_flash_tick = time.time()
+
+def tock():
+    return time.time() - usb_flash_tick 
+
 def do_flash(args):
+    if tock() < 5.0:
+        print("Post flash delay, ignoring usbport events. ")
+        return
+
     sleep(2)
     print("Flashing device: %s"%args.port[0])
     flash_reset(args)
     sleep(0.6)
     flash_upload(args)
+    tick()
 
-usb_first = True
 
 def usb_monitor():
     context = pyudev.Context()
@@ -70,21 +83,15 @@ def usb_monitor():
     # monitor.filter_by(subsystem='usb')  # Remove this line to listen for all devices.
     monitor.start()
 
-    usb_first = True
-
+    tick()
     for device in iter(monitor.poll, None):
         if device.subsystem == "tty" and device.action == "add":
             print("serial device: ", device.sys_name, device, )
             
-            if usb_first:
-                args.port = [ "/dev/" + device.sys_name ]
+            args.port = [ "/dev/" + device.sys_name ]
             
-                do_flash(args)
-                usb_first = False
-            else: 
-                print("serial port reloaded, ignoring")
-                usb_first = True
-                continue
+            do_flash(args)
+            usb_first = False
 
 
 # ('usb device: ', Device(u'/sys/devices/platform/soc/3f980000.usb/usb1/1-1/1-1.3/1-1.3:1.0/tty/ttyACM0'), u'add')
