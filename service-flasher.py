@@ -9,16 +9,17 @@ import pyudev
 import subprocess
 
 parser = argparse.ArgumentParser(description='Reset an Arduino')
-parser.add_argument('--caterina', action='store_true', help='Reset a Leonardo, Micro, Robot or LilyPadUSB.')
+parser.add_argument('--no-caterina', action='store_true', default=False, help='Reset a Leonardo, Micro, Robot or LilyPadUSB.')
 parser.add_argument('--verbose', action='store_true', help="Watch what's going on on STDERR.")
 parser.add_argument('--period', default=0.1, help='Specify the DTR pulse width in seconds.')
-parser.add_argument('--avrconf', default="/usr/share/arduino/hardware/tools/avrdude.conf", help='AVR Conf File')
+parser.add_argument('--avrconf', default="./arduino-1.8.0/hardware/tools/avr/etc/avrdude.conf", help='AVR Conf File')
+parser.add_argument('--avrdude', default="./arduino-1.8.0/hardware/tools/avr/bin/avrdude", help='AVR Conf File')
 parser.add_argument('firmware', nargs=1, help='Firmware to flash.')
 # parser.add_argument('port', nargs=1, help='Serial device e.g. /dev/ttyACM0')
 args = parser.parse_args()
 
 def flash_reset(args):
-    if args.caterina:
+    if not args.no_caterina:
         if args.verbose: print('Forcing reset using 1200bps open/close on port %s' % args.port[0])
         ser = serial.Serial(args.port[0], 57600)
         ser.close()
@@ -44,22 +45,24 @@ def flash_reset(args):
 
 def flash_upload(args):
     
-    subprocess.call(["avrdude", 
+    subprocess.call(["%s"%args.avrdude, 
         "-C", "%s"%(args.avrconf), 
         "-v", 
         "-p", "atmega32u4",
         "-c", "avr109",
         "-P", "%s"%(args.port[0]),
         "-b", "57600", 
-        "-U", "flash:w:%s:i"%(args.firmware),
+        "-U", "flash:w:%s:i"%(args.firmware[0]),
     ])
 
 def do_flash(args):
+    sleep(2)
     print("Flashing device: %s"%args.port[0])
-    sleep(0.6)
     flash_reset(args)
     sleep(0.6)
     flash_upload(args)
+
+usb_first = True
 
 def usb_monitor():
     context = pyudev.Context()
@@ -67,13 +70,21 @@ def usb_monitor():
     # monitor.filter_by(subsystem='usb')  # Remove this line to listen for all devices.
     monitor.start()
 
+    usb_first = True
+
     for device in iter(monitor.poll, None):
         if device.subsystem == "tty" and device.action == "add":
             print("serial device: ", device.sys_name, device, )
-            args.port = [ "/dev/" + device.sys_name ]
             
-            do_flash(args)
+            if usb_first:
+                args.port = [ "/dev/" + device.sys_name ]
             
+                do_flash(args)
+                usb_first = False
+            else: 
+                print("serial port reloaded, ignoring")
+                usb_first = True
+                continue
 
 
 # ('usb device: ', Device(u'/sys/devices/platform/soc/3f980000.usb/usb1/1-1/1-1.3/1-1.3:1.0/tty/ttyACM0'), u'add')
