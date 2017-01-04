@@ -3,6 +3,7 @@
 # wget https://adafruit.github.io/arduino-board-index/package_adafruit_index.json
 
 sudo apt install -y gcc-avr binutils-avr avr-libc avrdude
+sudo apt install -y bison
 
 ## ino -- helper utility for building Arduino projects
 
