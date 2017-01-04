@@ -59,6 +59,7 @@ def flash_upload(args):
 usb_flash_tick = time.time()
 
 def tick():
+    global usb_flash_tick
     usb_flash_tick = time.time()
 
 def tock():
@@ -91,7 +92,6 @@ def usb_monitor():
             args.port = [ "/dev/" + device.sys_name ]
             
             do_flash(args)
-            usb_first = False
 
 
 # ('usb device: ', Device(u'/sys/devices/platform/soc/3f980000.usb/usb1/1-1/1-1.3/1-1.3:1.0/tty/ttyACM0'), u'add')
