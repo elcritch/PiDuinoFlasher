@@ -8,7 +8,7 @@ from time import sleep
 import time
 import pyudev
 import subprocess
-import RPi.GPIO as GPIO
+#import RPi.GPIO as GPIO
 
 parser = argparse.ArgumentParser(description='Reset an Arduino')
 parser.add_argument('--no-caterina', action='store_true', default=False, help='Reset a Leonardo, Micro, Robot or LilyPadUSB.')
@@ -46,7 +46,7 @@ def flash_reset(args):
         ser.close()
 
 def flash_upload(args):
-    
+    print("Flashing upload")
     subprocess.call(["%s"%args.avrdude, 
         "-C", "%s"%(args.avrconf), 
         "-v", 
@@ -71,14 +71,14 @@ def do_flash(args):
         print("Post flash delay, ignoring usbport events. ")
         return
 
-    GPIO.output(LED_PIN, GPIO.LOW)
+    #GPIO.output(LED_PIN, GPIO.LOW)
     sleep(2)
     print("Flashing device: %s"%args.port[0])
     flash_reset(args)
     sleep(0.6)
     flash_upload(args)
     tick()
-    GPIO.output(LED_PIN, GPIO.HIGH)
+    #GPIO.output(LED_PIN, GPIO.HIGH)
 
 
 def usb_monitor():
@@ -94,7 +94,10 @@ def usb_monitor():
             
             args.port = [ "/dev/" + device.sys_name ]
             
-            do_flash(args)
+            try: 
+                do_flash(args)
+            except Exception as err:
+                print("Err: ", err)
 
 
 # ('usb device: ', Device(u'/sys/devices/platform/soc/3f980000.usb/usb1/1-1/1-1.3/1-1.3:1.0/tty/ttyACM0'), u'add')
@@ -102,9 +105,9 @@ def usb_monitor():
 LED_PIN = 47
 
 def main():
-    GPIO.setmode(GPIO.BCM)
-    GPIO.setup(LED_PIN, GPIO.OUT)
-    GPIO.output(LED_PIN, GPIO.HIGH)
+    #GPIO.setmode(GPIO.BCM)
+    #GPIO.setup(LED_PIN, GPIO.OUT)
+    #GPIO.output(LED_PIN, GPIO.HIGH)
     args.verbose = True
     usb_monitor()
 
