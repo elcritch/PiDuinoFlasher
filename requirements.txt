@@ -1,2 +1,4 @@
 pyudev
 pySerial>=2.0,<=2.9999
+requests
+pytz

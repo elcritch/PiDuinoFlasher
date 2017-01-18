@@ -10,12 +10,19 @@ import pyudev
 import subprocess
 #import RPi.GPIO as GPIO
 
+import requests
+import pytz 
+import hashlib
+import datetime
+
+
 parser = argparse.ArgumentParser(description='Reset an Arduino')
 parser.add_argument('--no-caterina', action='store_true', default=False, help='Reset a Leonardo, Micro, Robot or LilyPadUSB.')
 parser.add_argument('--verbose', action='store_true', help="Watch what's going on on STDERR.")
 parser.add_argument('--period', default=0.1, help='Specify the DTR pulse width in seconds.')
 parser.add_argument('--avrconf', default="./arduino-1.8.0/hardware/tools/avr/etc/avrdude.conf", help='AVR Conf File')
 parser.add_argument('--avrdude', default="./arduino-1.8.0/hardware/tools/avr/bin/avrdude", help='AVR Conf File')
+parser.add_argument('--ifttt', default="XXXXXXXXXXX", help='key for ifttt service notifications')
 parser.add_argument('firmware', nargs=1, help='Firmware to flash.')
 # parser.add_argument('port', nargs=1, help='Serial device e.g. /dev/ttyACM0')
 args = parser.parse_args()
@@ -58,10 +65,13 @@ def flash_upload(args):
     ])
 
 usb_flash_tick = time.time()
+flash_count = 1
 
 def tick():
     global usb_flash_tick
+    global flash_count
     usb_flash_tick = time.time()
+    flash_count += 1
 
 def tock():
     return time.time() - usb_flash_tick 
@@ -78,8 +88,19 @@ def do_flash(args):
     sleep(0.6)
     flash_upload(args)
     tick()
+    post_status("success", args)
     #GPIO.output(LED_PIN, GPIO.HIGH)
 
+def post_status(status, args):
+
+    if not args.ifttt:
+       return None
+    
+    ts = str(datetime.datetime.now(pytz.timezone('US/Pacific')))
+    url = "https://maker.ifttt.com/trigger/flasher_run/with/key/%s"%args.ifttt
+    print("post url: ", url)
+    
+    requests.post(url, json={"value1": str(status), "value2": args.firmware_hash, "value3": "count %d, ts: %s"%(flash_count, ts)})
 
 def usb_monitor():
     context = pyudev.Context()
@@ -96,8 +117,10 @@ def usb_monitor():
             
             try: 
                 do_flash(args)
+
             except Exception as err:
                 print("Err: ", err)
+                post_status("error: %s"%(str(err)), args)
 
 
 # ('usb device: ', Device(u'/sys/devices/platform/soc/3f980000.usb/usb1/1-1/1-1.3/1-1.3:1.0/tty/ttyACM0'), u'add')
@@ -108,7 +131,12 @@ def main():
     #GPIO.setmode(GPIO.BCM)
     #GPIO.setup(LED_PIN, GPIO.OUT)
     #GPIO.output(LED_PIN, GPIO.HIGH)
+    with open(args.firmware[0], 'r') as file:
+       firmware_hash = hashlib.md5(file.read().encode('utf-8')).hexdigest()
+       args.firmware_hash = firmware_hash
+
     args.verbose = True
+    print("firmware hash: ", args.firmware_hash)
     usb_monitor()
 
 if __name__ == "__main__":
